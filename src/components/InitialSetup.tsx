@@ -11,6 +11,7 @@ interface InitialSetupProps {
     author: string;
     school: string;
     analyzedData: any;
+    uploadedSections?: { title: string; content: string }[];
   }) => void;
 }
 
@@ -201,7 +202,7 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
           subject, 
           grade, 
           category,
-          customOutline: customOutlinePayload
+          customOutline: customOutlineLines
         }),
       });
 
@@ -242,7 +243,8 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
       category,
       author: author || 'Thầy/Cô Giáo',
       school: school || 'Sở Giáo dục và Đào tạo',
-      analyzedData: analysisResult
+      analyzedData: analysisResult,
+      uploadedSections: uploadedSections
     });
   };
 
