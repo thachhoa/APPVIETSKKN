@@ -1,6 +1,6 @@
 // Vercel Serverless Function entrypoint wrapping the Express app
 // Bọc cụm khởi chạy để bắt lỗi nạp module nếu có (ví dụ: thiếu dependencies trên Vercel)
-const appPromise = import("../server").catch(err => {
+const appPromise = import("../server.js").catch(err => {
   console.error("Lỗi import server ở startup:", err);
   return {
     default: (req: any, res: any) => {
