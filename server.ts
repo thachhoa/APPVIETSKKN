@@ -845,8 +845,10 @@ function parseDocumentToSections(text: string): { title: string, content: string
       lower.startsWith("mục") ||
       lower.startsWith("phụ lục") ||
       /^[ivx]+\./i.test(trimmed) || // I., II., III.
-      /^[0-9]+\.[0-9]?\s*/.test(trimmed) || // 1., 1.1...
-      /^[a-z]\.\s*/i.test(trimmed); // A., B., C.
+      /^[0-9]+(\.[0-9]+)*\./.test(trimmed) || // 1., 1.1., 1.1.1.
+      /^[0-9]+(\.[0-9]+)+\s+/.test(trimmed) || // 1.1, 1.1.1 (no dot but space)
+      /^[a-z]\.\s*/i.test(trimmed) || // A., B., C. or a., b., c.
+      /^[a-z]\)\s+/i.test(trimmed); // a), b), c)
 
     // If it's a heading and not excessively long (under 120 characters)
     if (isHeading && trimmed.length < 120) {
