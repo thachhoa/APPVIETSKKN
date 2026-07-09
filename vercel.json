@@ -1,12 +1,4 @@
 {
-  "functions": {
-    "api/index.js": {
-      "includeFiles": [
-        "node_modules/@google/genai/**",
-        "node_modules/mammoth/**"
-      ]
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
