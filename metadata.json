@@ -1,0 +1,6 @@
+{
+  "name": "SKKN 2026 PRO",
+  "description": "Nền tảng trợ lý AI chuyên biệt giúp giáo viên viết Sáng kiến kinh nghiệm, Biện pháp sư phạm, và Hồ sơ giáo viên giỏi đạt giải cao.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
