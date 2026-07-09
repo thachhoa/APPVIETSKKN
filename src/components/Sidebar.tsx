@@ -120,34 +120,53 @@ export default function Sidebar({
         <div className="flex-1 overflow-y-auto p-4 space-y-1">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">Các bước hoàn thiện</div>
           
-          {initiative.outline.map((section, index) => {
-            const isSelected = currentSectionId === section.id;
-            return (
-              <button
-                key={section.id}
-                id={`sidebar-sec-${section.id}`}
-                onClick={() => onSelectSection(section.id)}
-                className={`w-full p-3 rounded-xl text-left flex items-start space-x-3 transition-all ${
-                  isSelected 
-                    ? 'bg-gradient-to-r from-indigo-50/50 to-white border border-[#7C3AED] shadow-sm text-slate-900 ring-1 ring-[#7C3AED]/10'
-                    : 'bg-white border border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                <div className="mt-0.5">
-                  {getStatusIcon(section.status)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between space-x-1.5">
-                    <span className="text-[10px] font-semibold text-slate-400">Bước {index + 1}</span>
-                    {getStatusBadge(section.status)}
+          {(() => {
+            const getIndentationStyles = (title: string) => {
+              const trimmed = title.trim();
+              const numMatch = trimmed.match(/^([0-9]+(\.[0-9]+)+)/);
+              if (numMatch) {
+                const dots = (numMatch[1].match(/\./g) || []).length;
+                if (dots === 1) return { pl: "pl-6", size: "text-[11px]", isSub: true };
+                if (dots >= 2) return { pl: "pl-10", size: "text-[10px]", isSub: true };
+              }
+              if (/^[a-z]\)/i.test(trimmed) || /^[a-z]\.\s/i.test(trimmed)) {
+                return { pl: "pl-8", size: "text-[10.5px]", isSub: true };
+              }
+              return { pl: "pl-2", size: "text-xs", isSub: false };
+            };
+
+            return initiative.outline.map((section, index) => {
+              const isSelected = currentSectionId === section.id;
+              const styles = getIndentationStyles(section.vietnameseTitle);
+              return (
+                <button
+                  key={section.id}
+                  id={`sidebar-sec-${section.id}`}
+                  onClick={() => onSelectSection(section.id)}
+                  className={`w-full p-2.5 rounded-xl text-left flex items-start space-x-2 transition-all ${styles.pl} ${
+                    isSelected 
+                      ? 'bg-gradient-to-r from-indigo-50/50 to-white border border-[#7C3AED] shadow-sm text-slate-900 ring-1 ring-[#7C3AED]/10'
+                      : 'bg-white border border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                  }`}
+                >
+                  <div className="mt-0.5">
+                    {getStatusIcon(section.status)}
                   </div>
-                  <div className={`text-xs font-bold leading-snug mt-0.5 ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>
-                    {section.vietnameseTitle}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between space-x-1.5">
+                      {!styles.isSub && (
+                        <span className="text-[9px] font-semibold text-slate-400">Bước {index + 1}</span>
+                      )}
+                      {getStatusBadge(section.status)}
+                    </div>
+                    <div className={`font-bold leading-snug mt-0.5 ${styles.size} ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>
+                      {section.vietnameseTitle}
+                    </div>
                   </div>
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            });
+          })()}
         </div>
       </div>
 
