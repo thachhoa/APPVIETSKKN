@@ -1624,6 +1624,13 @@ async function startServer() {
   });
 }
 
-if (!process.env.VERCEL) {
+const isServerless = 
+  process.env.VERCEL === "1" || 
+  process.env.VERCEL === "true" ||
+  process.env.NOW_REGION !== undefined || 
+  process.env.LAMBDA_TASK_ROOT !== undefined || 
+  process.env.AWS_EXECUTION_ENV !== undefined;
+
+if (!isServerless) {
   startServer();
 }
