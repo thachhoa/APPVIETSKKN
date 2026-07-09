@@ -5,7 +5,7 @@ const appPromise = import("../server").catch(err => {
   return {
     default: (req: any, res: any) => {
       res.status(500).json({
-        error: "Lỗi khởi động Serverless Function trên Vercel.",
+        error: `Lỗi khởi động: ${err.message}. Chi tiết: ${err.stack || "Không có stack"}`,
         details: err.message,
         stack: err.stack
       });
