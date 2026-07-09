@@ -40,6 +40,7 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
   const [useCustomOutline, setUseCustomOutline] = useState(false);
   const [customOutlineText, setCustomOutlineText] = useState('');
   const [customOutlineError, setCustomOutlineError] = useState('');
+  const [uploadedSections, setUploadedSections] = useState<{ title: string, content: string }[]>([]);
   const [parsingFile, setParsingFile] = useState(false);
 
   // Phase 1: Input form, Phase 2: AI Review & Confirmation
@@ -125,8 +126,12 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
               throw new Error("Phản hồi từ máy chủ không hợp lệ (Không phải cấu trúc JSON).");
             }
             if (resData.lines && resData.lines.length > 0) {
-              // Join extracted lines
               setCustomOutlineText(resData.lines.join('\n'));
+              if (resData.sections && Array.isArray(resData.sections)) {
+                setUploadedSections(resData.sections);
+              } else {
+                setUploadedSections(resData.lines.map((l: string) => ({ title: l, content: "" })));
+              }
               setCustomOutlineError('');
             } else {
               throw new Error("Không tìm thấy cấu trúc dòng nào phù hợp trong tài liệu.");
@@ -160,6 +165,16 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
       ? customOutlineText.split('\n').map(line => line.trim()).filter(line => line.length > 0)
       : [];
 
+    const customOutlinePayload = customOutlineLines.map(line => {
+      const matched = uploadedSections.find(
+        s => s.title.toLowerCase().trim() === line.toLowerCase().trim()
+      );
+      return {
+        title: line,
+        content: matched ? matched.content : ""
+      };
+    });
+
     if (useCustomOutline && customOutlineLines.length === 0) {
       setError('Vui lòng nhập hoặc tải cấu trúc khung tùy chỉnh trước khi tiếp tục');
       return;
@@ -184,7 +199,7 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
           subject, 
           grade, 
           category,
-          customOutline: customOutlineLines
+          customOutline: customOutlinePayload
         }),
       });
 
