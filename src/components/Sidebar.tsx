@@ -12,6 +12,7 @@ interface SidebarProps {
   onTriggerEvaluation: () => void;
   onExportDocx: () => void;
   onExportPptx: () => void;
+  onExportPdf: () => void;
   onResetProject: () => void;
   isEvaluating: boolean;
   isGeneratingSlides: boolean;
@@ -24,6 +25,7 @@ export default function Sidebar({
   onTriggerEvaluation,
   onExportDocx,
   onExportPptx,
+  onExportPdf,
   onResetProject,
   isEvaluating,
   isGeneratingSlides
@@ -208,6 +210,15 @@ export default function Sidebar({
               <span>Tạo Slide Thuyết Trình AI</span>
             </>
           )}
+        </button>
+
+        <button
+          id="btn-export-pdf"
+          onClick={onExportPdf}
+          className="w-full bg-[#EF4444] hover:bg-[#DC2626] text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-md shadow-red-500/10"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/></svg>
+          <span>Xuất Bản Bản In / PDF Đầy Đủ</span>
         </button>
 
         <button
