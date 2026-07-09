@@ -837,20 +837,34 @@ function parseDocumentToSections(text: string): { title: string, content: string
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // Detect if this line looks like a heading
-    const lower = trimmed.toLowerCase();
-    const isHeading = 
-      lower.startsWith("phần") ||
-      lower.startsWith("chương") ||
-      lower.startsWith("mục") ||
-      lower.startsWith("phụ lục") ||
-      /^[ivx]+\./i.test(trimmed) || // I., II., III.
-      /^[0-9]+(\.[0-9]+)*\./.test(trimmed) || // 1., 1.1., 1.1.1.
-      /^[0-9]+(\.[0-9]+)+\s+/.test(trimmed) || // 1.1, 1.1.1 (no dot but space)
-      /^[a-z]\.\s*/i.test(trimmed) || // A., B., C. or a., b., c.
-      /^[a-z]\)\s+/i.test(trimmed); // a), b), c)
+    let isHeading = false;
 
-    // If it's a heading and not excessively long (under 120 characters)
+    // 1. Từ khóa chương phần (không phân biệt hoa thường)
+    if (/^(phần|chương|mục|tiểu\s+mục|phụ\s+lục)\b/i.test(trimmed)) {
+      isHeading = true;
+    }
+    // 2. Chữ số La Mã: I., II., I), II) (không phân biệt hoa thường, có hoặc không có dấu cách sau)
+    else if (/^[ivx]+(\.|\)|:)?\s+/i.test(trimmed) || /^[ivx]+(\.|\)|:)\s*/i.test(trimmed)) {
+      isHeading = true;
+    }
+    // 3. Số nhiều cấp: 1.1, 1.1.1, 1.1.2 (có hoặc không có dấu cách sau)
+    else if (/^[0-9]+(\.[0-9]+)+(\.|\)|:)?\s*/.test(trimmed)) {
+      isHeading = true;
+    }
+    // 4. Số đơn cấp: 1., 1), 1: (có hoặc không có dấu cách sau)
+    else if (/^[0-9]+(\.|\)|:)\s*/.test(trimmed)) {
+      isHeading = true;
+    }
+    // 5. Chữ cái đơn: a., b), c: (không phân biệt hoa thường, có hoặc không có dấu cách sau)
+    else if (/^[a-z](\.|\)|:)\s*/i.test(trimmed)) {
+      isHeading = true;
+    }
+    // 6. Chữ cái đơn cách bằng dấu khoảng trắng: a , b 
+    else if (/^[a-z]\s+/i.test(trimmed) && trimmed.split(/\s+/)[0].length === 1) {
+      isHeading = true;
+    }
+
+    // Giới hạn độ dài dòng tiêu đề để tránh nhận nhầm câu văn dài bắt đầu bằng số
     if (isHeading && trimmed.length < 120) {
       if (currentContentLines.length > 0) {
         sections.push({
