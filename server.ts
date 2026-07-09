@@ -290,7 +290,7 @@ function fallbackAnalyzeTopic(title: string, subject: string, grade: string, cat
   }
 
   return {
-    analyzedTitle: `Nâng cao hiệu quả dạy học môn ${finalSubject} cho học sinh lớp ${finalGrade} thông qua ${processedTitle}`,
+    analyzedTitle: `Nâng cao hiệu quả dạy học môn ${finalSubject} cho học sinh lớp ${finalGrade} thông qua ${processedTitle || "hoạt động dạy học tích cực"}`,
     scoreEstimation: Math.floor(Math.random() * 10) + 85,
     innovation: `Sáng kiến đề xuất một hệ thống giải pháp đổi mới toàn diện mang tính đột phá, chuyển dịch từ cách dạy truyền thống áp đặt một chiều sang hình thức tương tác đa chiều. Phương pháp này khuyến khích học sinh lớp ${finalGrade} chủ động trải nghiệm, thảo luận nhóm và tích cực tham gia xây dựng bài thông qua hoạt động thực tế.`,
     practicality: `Tính ứng dụng thực tiễn cực kỳ cao. Các biện pháp sư phạm đề xuất bám sát khung chương trình Giáo dục phổ thông mới (GDPT 2018), tận dụng triệt để cơ sở vật chất sẵn có, hoàn toàn phù hợp với điều kiện giảng dạy thực tế của các nhà trường tại Việt Nam hiện nay mà không đòi hỏi thêm chi phí phụ trợ tốn kém.`,
@@ -659,11 +659,14 @@ app.get("/api/health", (req, res) => {
 
 // 1. Topic Analysis Route
 app.post("/api/analyze-topic", async (req, res) => {
-  const { title, subject, grade, category, customOutline } = req.body;
+  const { title, descriptionIdea, subject, grade, category, customOutline } = req.body;
 
-  if (!title) {
-    return res.status(400).json({ error: "Tiêu đề đề tài không được để trống" });
+  if (!title && !descriptionIdea) {
+    return res.status(400).json({ error: "Tiêu đề đề tài hoặc Mô tả ý tưởng không được để trống" });
   }
+
+  const actualTitle = title ? title.trim() : "";
+  const actualDescription = descriptionIdea ? descriptionIdea.trim() : "";
 
   let outlineInstructions = "";
   if (customOutline && Array.isArray(customOutline) && customOutline.length > 0) {
@@ -676,7 +679,7 @@ Với mỗi phần người dùng đã cung cấp ở trên:
 - Hãy tự đặt "id" ngắn gọn, duy nhất không dấu (ví dụ: "phan-1-mo-dau", "giai-phap-thuc-te", "khao-sat-thuc-te").
 - Thiết lập "title" là phiên bản ngắn gọn của phần đó (ví dụ: "Mở đầu" hoặc "Thực trạng").
 - Thiết lập "vietnameseTitle" phải TRÙNG KHỚP HOÀN TOÀN 100% với tên phần người dùng đã cung cấp.
-- Viết "description" chi tiết và chuẩn mực, hướng dẫn yêu cầu cụ thể những gì Thầy/Cô nên viết cho phần đó tương ứng với đề tài "${title}".
+- Viết "description" chi tiết và chuẩn mực, hướng dẫn yêu cầu cụ thể những gì Thầy/Cô nên viết cho phần đó tương ứng với đề tài "${actualTitle || 'Sáng kiến kinh nghiệm'}".
 - Đề xuất "aiSuggestedMetrics" (mảng danh sách các số liệu khảo sát/phân tích đo lường cụ thể cho phần đó).
 - Đề xuất "aiSuggestedEvidences" (mảng danh sách các hình ảnh, giáo án mẫu, phiếu học tập... minh chứng đi kèm).
 
@@ -696,10 +699,13 @@ Hãy tự động thiết kế một cấu trúc khung (standardOutlines) chuẩ
 
   const prompt = `
 Hãy phân tích tên đề tài Sáng kiến kinh nghiệm (SKKN) hoặc Biện pháp sư phạm sau đây theo chương trình giáo dục phổ thông Việt Nam mới (GDPT 2018):
-- Tên đề tài gốc: "${title}"
-- Môn học: "${subject || 'Chưa rõ'}"
-- Khối lớp: "${grade || 'Chưa rõ'}"
+${actualTitle ? `- Tên đề tài gốc: "${actualTitle}"` : ''}
+${actualDescription ? `- Ý tưởng/Mô tả nội dung sáng kiến chi tiết: "${actualDescription}"` : ''}
+- Môn học: "${subject || 'Chung'}"
+- Khối lớp: "${grade || 'Toàn trường'}"
 - Phân loại: "${category === 'bien-phap' ? 'Biện pháp sư phạm thi Giáo viên giỏi' : category === 'ho-so' ? 'Hồ sơ Giáo viên chủ nhiệm giỏi' : 'Sáng kiến kinh nghiệm (SKKN)'}"
+
+${!actualTitle && actualDescription ? 'LƯU Ý QUAN TRỌNG: Tác giả chưa đặt tên đề tài sáng kiến. Hãy phân tích kỹ ý tưởng mô tả ở trên của tác giả để tự động biên soạn và đề xuất 1 Tên đề tài (analyzedTitle) thật chuẩn mực, ngắn gọn, khoa học và thu hút nhất!' : ''}
 
 Yêu cầu phân tích và trả về cấu trúc JSON đúng định dạng sau:
 {
