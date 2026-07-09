@@ -156,6 +156,7 @@ export default function App() {
           sectionId: id,
           sectionTitle: section.vietnameseTitle,
           description: section.description,
+          existingContent: section.content || '',
           contextOutline: initiative.outline.map(s => ({ id: s.id, title: s.vietnameseTitle }))
         }),
       });
