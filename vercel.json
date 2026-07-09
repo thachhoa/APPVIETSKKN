@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "includeFiles": [
         "node_modules/@google/genai/**",
         "node_modules/mammoth/**"
