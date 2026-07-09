@@ -161,12 +161,20 @@ export default function App() {
         }),
       });
 
+      const responseText = await response.text();
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || errorData.details || 'Lỗi từ dịch vụ soạn thảo AI');
+        let errMsg = 'Lỗi từ dịch vụ soạn thảo AI';
+        try {
+          const errorData = JSON.parse(responseText);
+          errMsg = errorData.error || errorData.details || errMsg;
+        } catch {
+          const cleanedText = responseText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          errMsg = cleanedText.slice(0, 150) || errMsg;
+        }
+        throw new Error(errMsg);
       }
 
-      const data = await response.json();
+      const data = JSON.parse(responseText);
       return data.content || '';
     } catch (error: any) {
       console.error('Lỗi khi soạn thảo bằng AI:', error);
@@ -203,12 +211,20 @@ export default function App() {
         }),
       });
 
+      const responseText = await response.text();
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || errorData.details || 'Lỗi dịch vụ đánh giá của hội đồng');
+        let errMsg = 'Lỗi dịch vụ đánh giá của hội đồng';
+        try {
+          const errorData = JSON.parse(responseText);
+          errMsg = errorData.error || errorData.details || errMsg;
+        } catch {
+          const cleanedText = responseText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          errMsg = cleanedText.slice(0, 150) || errMsg;
+        }
+        throw new Error(errMsg);
       }
 
-      const data = await response.json();
+      const data = JSON.parse(responseText);
       const updated: Initiative = {
         ...initiative,
         evaluation: data
@@ -265,12 +281,20 @@ export default function App() {
         })
       });
 
+      const responseText = await response.text();
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || errorData.details || 'Trợ lý AI bận');
+        let errMsg = 'Trợ lý AI bận';
+        try {
+          const errorData = JSON.parse(responseText);
+          errMsg = errorData.error || errorData.details || errMsg;
+        } catch {
+          const cleanedText = responseText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          errMsg = cleanedText.slice(0, 150) || errMsg;
+        }
+        throw new Error(errMsg);
       }
 
-      const data = await response.json();
+      const data = JSON.parse(responseText);
       const aiMsg: Message = {
         id: 'msg_ai_' + Date.now(),
         sender: 'ai',
