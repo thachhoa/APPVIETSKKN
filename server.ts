@@ -833,12 +833,21 @@ function parseDocumentToSections(text: string): { title: string, content: string
   let currentTitle = "Phần mở đầu";
   let currentContentLines: string[] = [];
 
+  const headingKeywords = [
+    "mở đầu", "lý do", "lý do chọn đề tài", "mục đích", "mục tiêu", "nhiệm vụ", "đối tượng", "phương pháp", "phạm vi", "giới hạn",
+    "nội dung", "cơ sở lý luận", "cơ sở thực tiễn", "thực trạng", "thuận lợi", "khó khăn", "biện pháp", "giải pháp", "kết quả", "hiệu quả",
+    "kết luận", "kiến nghị", "khuyến nghị", "bài học", "bài học kinh nghiệm", "khảo nghiệm", "thực nghiệm", "phụ lục", "giáo án", "kế hoạch bài dạy",
+    "đóng góp", "tính mới", "tính sáng tạo", "sự cần thiết", "đánh giá", "tổ chức", "thực hiện", "khảo sát", "số liệu", "đối chứng"
+  ];
+
   for (const line of rawLines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
+    const lower = trimmed.toLowerCase();
     let isHeading = false;
 
+    // A. Kiểm tra cấu trúc dấu hiệu đầu dòng (prefix regex)
     // 1. Từ khóa chương phần (không phân biệt hoa thường)
     if (/^(phần|chương|mục|tiểu\s+mục|phụ\s+lục)\b/i.test(trimmed)) {
       isHeading = true;
@@ -864,8 +873,27 @@ function parseDocumentToSections(text: string): { title: string, content: string
       isHeading = true;
     }
 
+    // B. Các Heuristic nâng cao (Cho phép nhận diện các đề mục tự động đánh số của Word đã bị loại bỏ số thứ tự khi giải nén)
+    if (!isHeading && trimmed.length < 95) {
+      // Heuristic 1: Dòng chữ viết hoa hoàn toàn (Ví dụ: THỰC TRẠNG ĐỀ TÀI)
+      const isAllUppercase = trimmed === trimmed.toUpperCase() && /[a-zA-Z]/.test(trimmed);
+      if (isAllUppercase) {
+        isHeading = true;
+      }
+      // Heuristic 2: Chứa từ khóa học thuật thông dụng của Sáng kiến kinh nghiệm
+      else {
+        const containsKeyword = headingKeywords.some(kw => 
+          lower.startsWith(kw) || 
+          lower.includes(" " + kw)
+        );
+        if (containsKeyword) {
+          isHeading = true;
+        }
+      }
+    }
+
     // Giới hạn độ dài dòng tiêu đề để tránh nhận nhầm câu văn dài bắt đầu bằng số
-    if (isHeading && trimmed.length < 120) {
+    if (isHeading && trimmed.length < 95) {
       if (currentContentLines.length > 0) {
         sections.push({
           title: currentTitle,
