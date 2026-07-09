@@ -819,19 +819,7 @@ app.post("/api/parse-document", async (req, res) => {
         throw new Error("Lỗi khi đọc tệp Word (.docx). Hãy đảm bảo tệp của bạn không bị lỗi hoặc bị khóa: " + err.message);
       }
     } else if (lowerName.endsWith('.pdf')) {
-      try {
-        // Nạp động pdf-parse để tránh crash runtime trên Vercel khi đóng gói serverless
-        const pdfModule = await import("pdf-parse");
-        let pdfParser = pdfModule.default || pdfModule;
-        if (typeof pdfParser !== 'function' && (pdfParser as any).default) {
-          pdfParser = (pdfParser as any).default;
-        }
-        const data = await pdfParser(buffer);
-        text = data.text || "";
-      } catch (err: any) {
-        console.error("Lỗi parse PDF động:", err);
-        throw new Error("Trình phân tích PDF gặp sự cố cấu hình trên Vercel. Vui lòng chuyển đổi tệp PDF của bạn sang định dạng Word (.docx) hoặc Tệp Văn bản (.txt) để hệ thống xử lý ổn định nhất.");
-      }
+      return res.status(400).json({ error: "Định dạng tệp PDF hiện tại chưa được hỗ trợ xử lý trực tiếp trên máy chủ Vercel. Vui lòng chuyển đổi tệp PDF của bạn sang định dạng Word (.docx) hoặc Tệp văn bản (.txt) để tiếp tục." });
     } else if (lowerName.endsWith('.txt')) {
       text = buffer.toString('utf-8');
     } else {
