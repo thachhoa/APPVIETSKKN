@@ -189,7 +189,23 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Không thể kết nối đến máy chủ AI');
+        let errMsg = "Không thể kết nối đến máy chủ AI";
+        try {
+          const errData = await response.json();
+          errMsg = errData.error || errData.details || errMsg;
+        } catch (e) {
+          try {
+            const textErr = await response.text();
+            if (textErr.includes("API Key") || textErr.includes("api_key")) {
+              errMsg = "API Key không hợp lệ hoặc thiếu trong cấu hình.";
+            } else {
+              errMsg = textErr.slice(0, 150) || errMsg;
+            }
+          } catch {
+            // Ignore
+          }
+        }
+        throw new Error(errMsg);
       }
 
       const data = await response.json();
