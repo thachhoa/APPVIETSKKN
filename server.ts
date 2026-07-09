@@ -144,7 +144,7 @@ async function generateContentWithRetry(
 
 // --- FALLBACK SYSTEM FOR GEMINI OFFLINE / CONFIGURATION ISSUES ---
 
-function fallbackAnalyzeTopic(title: string, subject: string, grade: string, category: string, customOutlineLines?: string[]) {
+function fallbackAnalyzeTopic(title: string, subject: string, grade: string, category: string, customOutlineLines?: any[]) {
   const finalSubject = subject || "Giáo dục";
   const finalGrade = grade || "tiểu học/trung học";
   const processedTitle = title.replace(/^(phương pháp|biện pháp|sử dụng|nâng cao|một số|kinh nghiệm|về|với)\s+/i, '');
@@ -152,8 +152,17 @@ function fallbackAnalyzeTopic(title: string, subject: string, grade: string, cat
   let outlines: any[] = [];
   if (customOutlineLines && Array.isArray(customOutlineLines) && customOutlineLines.length > 0) {
     outlines = customOutlineLines.map((item, idx) => {
+      let itemTitle = "";
+      let itemContent = "";
+      if (typeof item === 'object' && item !== null) {
+        itemTitle = item.title || "";
+        itemContent = item.content || "";
+      } else {
+        itemTitle = String(item);
+      }
+
       let id = `phan-${idx + 1}`;
-      const lower = item.toLowerCase();
+      const lower = itemTitle.toLowerCase();
       if (lower.includes("mở đầu") || lower.includes("mo dau")) id = "mo-dau";
       else if (lower.includes("lý luận") || lower.includes("ly luan")) id = "co-so-ly-luan";
       else if (lower.includes("thực trạng") || lower.includes("thuc trang")) id = "thuc-trang";
@@ -163,11 +172,13 @@ function fallbackAnalyzeTopic(title: string, subject: string, grade: string, cat
 
       return {
         id: id,
-        title: item.length > 30 ? item.substring(0, 27) + "..." : item,
-        vietnameseTitle: item.startsWith("Phần") || item.startsWith("Chương") || /^[0-9]/.test(item) ? item : `Phần ${idx + 1}: ${item}`,
-        description: `Biên soạn chi tiết nội dung nghiên cứu cho phần "${item}" bám sát mục tiêu phát triển phẩm chất và năng lực cho học sinh lớp ${finalGrade} đối với môn học ${finalSubject}.`,
+        title: itemTitle.length > 30 ? itemTitle.substring(0, 27) + "..." : itemTitle,
+        vietnameseTitle: itemTitle.startsWith("Phần") || itemTitle.startsWith("Chương") || /^[0-9]/.test(itemTitle) ? itemTitle : `Phần ${idx + 1}: ${itemTitle}`,
+        description: `Biên soạn chi tiết nội dung nghiên cứu cho phần "${itemTitle}" bám sát mục tiêu phát triển phẩm chất và năng lực cho học sinh lớp ${finalGrade} đối với môn học ${finalSubject}.`,
+        content: itemContent,
+        status: itemContent ? 'completed' : 'idle',
         aiSuggestedMetrics: [
-          `Mức độ hoàn thành các nhiệm vụ học tập trong phần ${item}`,
+          `Mức độ hoàn thành các nhiệm vụ học tập trong phần ${itemTitle}`,
           `Khả năng tự nghiên cứu và tư duy sáng tạo phù hợp với chủ đề`
         ],
         aiSuggestedEvidences: [
@@ -780,7 +791,24 @@ Hãy trả về phản hồi KHÔNG có bất kỳ ký tự nào nằm ngoài đ
       responseMimeType: "application/json"
     });
 
-    res.json(cleanAndParseJson(text));
+    const parsedData = cleanAndParseJson(text);
+    
+    // Ghép nội dung gốc trích xuất từ file Word vào cấu trúc outlines do Gemini sinh ra
+    if (parsedData && Array.isArray(parsedData.standardOutlines) && customOutline && Array.isArray(customOutline)) {
+      parsedData.standardOutlines = parsedData.standardOutlines.map((outlineItem: any, idx: number) => {
+        const customItem = customOutline[idx];
+        if (customItem && typeof customItem === 'object' && customItem !== null && customItem.content) {
+          outlineItem.content = customItem.content;
+          outlineItem.status = 'completed'; // Đã có sẵn nội dung
+        } else {
+          outlineItem.content = outlineItem.content || "";
+          outlineItem.status = outlineItem.content ? 'completed' : 'idle';
+        }
+        return outlineItem;
+      });
+    }
+
+    res.json(parsedData);
   } catch (error: any) {
     console.error("Lỗi phân tích đề tài (đang chuyển sang fallback):", error);
     
@@ -797,6 +825,55 @@ Hãy trả về phản hồi KHÔNG có bất kỳ ký tự nào nằm ngoài đ
     }
   }
 });
+
+// Helper to parse document content into structured sections based on headings
+function parseDocumentToSections(text: string): { title: string, content: string }[] {
+  const rawLines = text.split(/\r?\n/);
+  const sections: { title: string, content: string }[] = [];
+  
+  let currentTitle = "Phần mở đầu";
+  let currentContentLines: string[] = [];
+
+  for (const line of rawLines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // Detect if this line looks like a heading
+    const lower = trimmed.toLowerCase();
+    const isHeading = 
+      lower.startsWith("phần") ||
+      lower.startsWith("chương") ||
+      lower.startsWith("mục") ||
+      lower.startsWith("phụ lục") ||
+      /^[ivx]+\./i.test(trimmed) || // I., II., III.
+      /^[0-9]+\.[0-9]?\s*/.test(trimmed) || // 1., 1.1...
+      /^[a-z]\.\s*/i.test(trimmed); // A., B., C.
+
+    // If it's a heading and not excessively long (under 120 characters)
+    if (isHeading && trimmed.length < 120) {
+      if (currentContentLines.length > 0) {
+        sections.push({
+          title: currentTitle,
+          content: currentContentLines.join("\n\n")
+        });
+      }
+      currentTitle = trimmed;
+      currentContentLines = [];
+    } else {
+      currentContentLines.push(trimmed);
+    }
+  }
+
+  // Push final section
+  if (currentContentLines.length > 0 || sections.length === 0) {
+    sections.push({
+      title: currentTitle,
+      content: currentContentLines.join("\n\n")
+    });
+  }
+
+  return sections;
+}
 
 // 1.5. Document Parsing Route (Extracts text/outline from Word, PDF or TXT)
 app.post("/api/parse-document", async (req, res) => {
@@ -830,90 +907,15 @@ app.post("/api/parse-document", async (req, res) => {
       return res.status(400).json({ error: "Không thể trích xuất văn bản từ tệp tin này hoặc tài liệu rỗng." });
     }
 
-    // Try parsing with Gemini first to get a perfectly structured, high-quality outline
-    try {
-      const prompt = `
-Bạn là Trợ lý AI chuyên nghiệp phân tích tài liệu giáo dục và Sáng kiến kinh nghiệm (SKKN).
-Hãy đọc kỹ phần văn bản trích xuất từ tài liệu dưới đây và trích xuất ra một danh sách cấu trúc khung (Mục lục / Danh sách chương / Danh sách các phần lớn) để làm khung biên soạn.
-
-Tên tệp tin gốc: "${fileName}"
-
-Nội dung trích xuất:
-"""
-${text.slice(0, 16000)}
-"""
-
-Yêu cầu trích xuất:
-1. Hãy tìm kiếm và liệt kê các chương lớn, phần lớn hoặc các đề mục chính nhất (Ví dụ: "Phần thứ nhất: Mở đầu", "Phần thứ hai: Nội dung", "Chương I...", "Chương II...", hoặc "1. Mở đầu", "2. Thực trạng", "3. Các giải pháp", "4. Kết quả", "5. Kết luận").
-2. Đừng liệt kê các tiểu mục con quá chi tiết (như 1.1.1, 1.1.2, a, b, c). Chỉ lấy tối đa 5 - 10 phần chính lớn nhất theo đúng trình tự từ đầu đến cuối của tài liệu để tạo nên bộ khung xương chuẩn nhất.
-3. Nếu tài liệu không chứa mục lục hoặc các phần rõ ràng, hãy tự động tóm tắt nội dung chính và đề xuất một cấu trúc khung gồm 4-6 phần phù hợp nhất dựa trên nội dung đã đọc để giúp thầy cô giáo soạn thảo đề tài này thành công.
-4. Trả về kết quả dưới định dạng JSON có cấu trúc như sau:
-{
-  "lines": [
-    "Tên phần/chương thứ 1",
-    "Tên phần/chương thứ 2",
-    "Tên phần/chương thứ 3",
-    ...
-  ]
-}
-
-LƯU Ý CỰC KỲ QUAN TRỌNG: Chỉ trả về chuỗi JSON thô, không viết chữ gì khác ngoài JSON, không sử dụng markdown code block \`\`\`json.
-`;
-
-      const { isMock } = getAIClient(req);
-      if (isMock) {
-        throw new Error("Chạy chế độ ngoại tuyến");
-      }
-
-      const responseText = await generateContentWithRetry(req, {
-        contents: prompt,
-        responseMimeType: "application/json"
-      });
-
-      const parsed = cleanAndParseJson(responseText);
-
-      if (parsed && Array.isArray(parsed.lines) && parsed.lines.length > 0) {
-        return res.json({
-          success: true,
-          fileName,
-          totalLines: parsed.lines.length,
-          lines: parsed.lines
-        });
-      }
-    } catch (aiErr: any) {
-      console.warn("Gemini outline extraction failed, falling back to regex heuristic parser:", aiErr);
-      
-      // Nếu là lỗi API Key không hợp lệ, trả lỗi thẳng về client
-      if (aiErr.message && aiErr.message.includes("API Key")) {
-        return res.status(400).json({ error: aiErr.message });
-      }
-    }
-
-    // Fallback: Splitting by lines and heuristic matching (if Gemini is unavailable or fails)
-    const rawLines = text.split(/\r?\n/);
-    const cleanedLines = rawLines
-      .map(line => line.trim())
-      .filter(line => line.length > 0 && line.length < 150);
-
-    const structuredHeaders = cleanedLines.filter(line => {
-      const lower = line.toLowerCase();
-      return (
-        lower.startsWith('phần') ||
-        lower.startsWith('chương') ||
-        lower.startsWith('mục') ||
-        /^[ivx]+\./i.test(line) || // I., II., III.
-        /^[0-9]+\./.test(line) || // 1., 2., 3.
-        /^[a-z]\./i.test(line) // A., B., C.
-      );
-    });
-
-    const finalLines = structuredHeaders.length >= 3 ? structuredHeaders : cleanedLines.slice(0, 35);
-
+    // Direct fast regex extraction to avoid Gemini Vercel timeouts (10s Hobby limit)
+    const parsedSections = parseDocumentToSections(text);
+    
     res.json({
       success: true,
       fileName,
-      totalLines: cleanedLines.length,
-      lines: finalLines.slice(0, 40)
+      totalLines: parsedSections.length,
+      lines: parsedSections.map(s => s.title),
+      sections: parsedSections // Returns the array of { title, content } for the frontend
     });
 
   } catch (error: any) {
@@ -924,10 +926,21 @@ LƯU Ý CỰC KỲ QUAN TRỌNG: Chỉ trả về chuỗi JSON thô, không vi�
 
 // 2. Section Generator Route
 app.post("/api/generate-section", async (req, res) => {
-  const { title, subject, grade, category, sectionId, sectionTitle, description, contextOutline } = req.body;
+  const { title, subject, grade, category, sectionId, sectionTitle, description, contextOutline, existingContent } = req.body;
 
   if (!title || !sectionId) {
     return res.status(400).json({ error: "Thiếu thông tin đề tài hoặc phần cần viết" });
+  }
+
+  let originalContentContext = "";
+  if (existingContent && String(existingContent).trim().length > 0) {
+    originalContentContext = `
+DƯỚI ĐÂY LÀ PHÁC THẢO / NỘI DUNG GỐC CÓ SẴN do Thầy/Cô cung cấp cho phần này:
+"""
+${existingContent}
+"""
+YÊU CẦU QUAN TRỌNG: Bạn hãy phân tích bản phác thảo gốc trên, giữ lại các ý cốt lõi, mở rộng và viết sâu sắc hơn, sửa lại theo văn phong sư phạm khoa học, sửa hoặc bổ sung số liệu minh chứng nếu cần thiết. KHÔNG tự ý bỏ qua các ý chính trong bản phác thảo trên.
+`;
   }
 
   const prompt = `
@@ -938,6 +951,7 @@ Bạn là một chuyên gia viết Sáng kiến kinh nghiệm bậc thầy tại
 - Phân loại: "${category}"
 - Phần cần soạn thảo: "${sectionTitle}" (ID: ${sectionId})
 - Định hướng yêu cầu phần này: "${description}"
+${originalContentContext}
 
 Yêu cầu về nội dung:
 1. Viết bài bằng tiếng Việt với văn phong học thuật, chuẩn mực sư phạm, tự nhiên và giàu tính thuyết phục.
