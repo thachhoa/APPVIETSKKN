@@ -1,7 +1,10 @@
 {
   "functions": {
     "api/index.ts": {
-      "includeFiles": "node_modules/{@google/genai,mammoth}/**"
+      "includeFiles": [
+        "node_modules/@google/genai/**",
+        "node_modules/mammoth/**"
+      ]
     }
   },
   "rewrites": [
