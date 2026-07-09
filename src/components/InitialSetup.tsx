@@ -29,6 +29,7 @@ const GRADES = [
 
 export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
   const [title, setTitle] = useState('');
+  const [descriptionIdea, setDescriptionIdea] = useState('');
   const [subject, setSubject] = useState('');
   const [grade, setGrade] = useState('');
   const [category, setCategory] = useState<InitiativeCategory>('skkn');
@@ -157,26 +158,53 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
     }
   };
 
+  const downloadTemplate = () => {
+    const templateText = `CẤU TRÚC KHUNG SÁNG KIẾN KINH NGHIỆM MẪU (THẦY/CÔ SAO CHÉP VÀO FILE WORD CỦA MÌNH)
+----------------------------------------------------------------------------------
+Phần I: MỞ ĐẦU
+1. Lý do chọn đề tài
+2. Mục đích nghiên cứu
+3. Đối tượng và phạm vi nghiên cứu
+
+Phần II: NỘI DUNG
+1. Cơ sở lý luận
+1.1. Khái niệm về học liệu số tương tác
+1.2. Tầm quan trọng của đổi mới phương pháp giảng dạy
+2. Thực trạng giảng dạy tại nhà trường
+2.1. Những thuận lợi ban đầu
+2.2. Khó khăn và tồn tại cần khắc phục
+3. Các giải pháp thực hiện sáng kiến
+3.1. Thiết kế và ứng dụng trò chơi tương tác trong tiết học
+3.1.1. Cách xây dựng kịch bản trò chơi âm, vần
+3.1.2. Cách triển khai hoạt động chơi nhóm tại lớp
+3.2. Tích hợp công nghệ và số hóa học liệu bài dạy
+4. Hiệu quả thực tiễn sau khi áp dụng các biện pháp
+
+Phần III: KẾT LUẬN VÀ KIẾN NGHỊ
+1. Kết luận chung về hiệu quả sáng kiến
+2. Các đề xuất và kiến nghị cụ thể`;
+
+    const blob = new Blob([templateText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'Mau_khung_cau_truc_skkn.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleStartAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setError('Vui lòng nhập tên đề tài sáng kiến');
+    if (!title.trim() && !descriptionIdea.trim()) {
+      setError('Vui lòng nhập tên đề tài sáng kiến hoặc mô tả ý tưởng nội dung mong muốn');
       return;
     }
 
     const customOutlineLines = useCustomOutline && customOutlineText.trim()
       ? customOutlineText.split('\n').map(line => line.trim()).filter(line => line.length > 0)
       : [];
-
-    const customOutlinePayload = customOutlineLines.map(line => {
-      const matched = uploadedSections.find(
-        s => s.title.toLowerCase().trim() === line.toLowerCase().trim()
-      );
-      return {
-        title: line,
-        content: matched ? matched.content : ""
-      };
-    });
 
     if (useCustomOutline && customOutlineLines.length === 0) {
       setError('Vui lòng nhập hoặc tải cấu trúc khung tùy chỉnh trước khi tiếp tục');
@@ -198,7 +226,8 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
           'x-gemini-model': selectedModel
         },
         body: JSON.stringify({ 
-          title, 
+          title: title.trim(),
+          descriptionIdea: descriptionIdea.trim(),
           subject, 
           grade, 
           category,
@@ -236,8 +265,11 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
 
   const handleConfirmAndProceed = () => {
     if (!analysisResult) return;
+    
+    const finalTitle = title.trim() ? title.trim() : (analysisResult.analyzedTitle || "Sáng kiến kinh nghiệm");
+
     onSetupComplete({
-      title: analysisResult.analyzedTitle || title,
+      title: finalTitle,
       subject: subject || 'Chung',
       grade: grade || 'Toàn trường',
       category,
@@ -335,16 +367,29 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2" htmlFor="topic-title">
-                  Tên đề tài / Ý tưởng sáng kiến ban đầu *
+                  Tên đề tài / Ý tưởng sáng kiến ban đầu (Có thể để trống nếu nhập Mô tả dưới đây)
                 </label>
                 <textarea
                   id="topic-title"
-                  rows={3}
+                  rows={2}
                   className="w-full px-4 py-3 bg-slate-50/60 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[#7C3AED] focus:bg-white text-sm text-slate-800 placeholder-slate-400 font-sans transition-all"
-                  placeholder="Ví dụ: Một số biện pháp giúp học sinh học tốt môn Toán lớp 3 thông qua các trò chơi học tập"
+                  placeholder="Ví dụ: Nâng cao hiệu quả giảng dạy âm, vần môn Tiếng Việt lớp 1 bằng các trò chơi tương tác"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2" htmlFor="topic-description">
+                  Mô tả chi tiết nội dung / ý tưởng sáng kiến mong muốn (AI sẽ tự động sinh tên đề tài tối ưu nếu để trống tên đề tài ở trên)
+                </label>
+                <textarea
+                  id="topic-description"
+                  rows={3}
+                  className="w-full px-4 py-3 bg-slate-50/60 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[#7C3AED] focus:bg-white text-sm text-slate-800 placeholder-slate-400 font-sans transition-all"
+                  placeholder="Ví dụ: Tôi muốn áp dụng các trò chơi tương tác như Quizizz, Kahoot trong tiết dạy Tiếng Việt lớp 1 giúp các con hứng thú ghép vần..."
+                  value={descriptionIdea}
+                  onChange={(e) => setDescriptionIdea(e.target.value)}
                 />
               </div>
 
@@ -468,9 +513,20 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
 
                     <div className="flex flex-col justify-between space-y-2">
                       <div className="space-y-1.5">
-                        <span className="block text-[11px] font-bold text-slate-600">
-                          Hoặc chọn/kéo thả file cấu trúc chuẩn:
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="block text-[11px] font-bold text-slate-600">
+                            Hoặc chọn/kéo thả file cấu trúc:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={downloadTemplate}
+                            className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer flex items-center space-x-1 z-20"
+                            title="Tải tệp tin văn bản chứa khung cấu trúc đề tài mẫu để điền theo đúng cấu trúc"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                            <span>Tải File Khung Mẫu</span>
+                          </button>
+                        </div>
                         
                         <div className="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-xl p-4 bg-white flex flex-col items-center justify-center text-center space-y-2 cursor-pointer transition-all relative group h-[105px]">
                           <input
