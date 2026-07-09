@@ -99,21 +99,19 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
               })
             });
 
+            const responseText = await response.text();
+
             if (!response.ok) {
               let errMsg = "Lỗi xử lý file từ máy chủ";
               try {
-                const errData = await response.json();
+                const errData = JSON.parse(responseText);
                 errMsg = errData.error || errData.details || errMsg;
-              } catch (e) {
-                try {
-                  const textErr = await response.text();
-                  if (textErr.includes("API Key") || textErr.includes("api_key")) {
-                    errMsg = "API Key không hợp lệ hoặc thiếu trong cấu hình.";
-                  } else {
-                    errMsg = textErr.slice(0, 150) || errMsg;
-                  }
-                } catch {
-                  // Ignore
+              } catch {
+                if (responseText.includes("API Key") || responseText.includes("api_key")) {
+                  errMsg = "API Key không hợp lệ hoặc thiếu trong cấu hình.";
+                } else {
+                  const cleanedText = responseText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                  errMsg = cleanedText.slice(0, 150) || errMsg;
                 }
               }
               throw new Error(errMsg);
@@ -121,7 +119,7 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
 
             let resData;
             try {
-              resData = await response.json();
+              resData = JSON.parse(responseText);
             } catch (e) {
               throw new Error("Phản hồi từ máy chủ không hợp lệ (Không phải cấu trúc JSON).");
             }
@@ -203,27 +201,25 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
         }),
       });
 
+      const responseText = await response.text();
+
       if (!response.ok) {
         let errMsg = "Không thể kết nối đến máy chủ AI";
         try {
-          const errData = await response.json();
+          const errData = JSON.parse(responseText);
           errMsg = errData.error || errData.details || errMsg;
-        } catch (e) {
-          try {
-            const textErr = await response.text();
-            if (textErr.includes("API Key") || textErr.includes("api_key")) {
-              errMsg = "API Key không hợp lệ hoặc thiếu trong cấu hình.";
-            } else {
-              errMsg = textErr.slice(0, 150) || errMsg;
-            }
-          } catch {
-            // Ignore
+        } catch {
+          if (responseText.includes("API Key") || responseText.includes("api_key")) {
+            errMsg = "API Key không hợp lệ hoặc thiếu trong cấu hình.";
+          } else {
+            const cleanedText = responseText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+            errMsg = cleanedText.slice(0, 150) || errMsg;
           }
         }
         throw new Error(errMsg);
       }
 
-      const data = await response.json();
+      const data = JSON.parse(responseText);
       setAnalysisResult(data);
       setPhase('review');
     } catch (err: any) {
