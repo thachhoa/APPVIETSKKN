@@ -487,12 +487,27 @@ export default function InitialSetup({ onSetupComplete }: InitialSetupProps) {
                               <span className="text-[8px] text-slate-400">AI đang xử lý tài liệu</span>
                             </div>
                           ) : uploadedFileName ? (
-                            <div className="flex flex-col items-center justify-center space-y-1.5 px-2">
+                            <div className="flex flex-col items-center justify-center space-y-1.5 px-2 relative w-full h-full">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  setUploadedFileName('');
+                                  setCustomOutlineText('');
+                                  setUploadedSections([]);
+                                }}
+                                className="absolute top-1 right-1 p-1 rounded-full bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-400 transition-colors z-20 cursor-pointer"
+                                title="Xóa file đã tải"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                              </button>
+                              
                               <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-check"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/></svg>
                               </div>
-                              <span className="text-[10px] font-bold text-emerald-600 max-w-[240px] truncate">{uploadedFileName}</span>
-                              <span className="text-[8px] text-slate-400">Trích xuất cấu trúc thành công! Kéo thả để đổi file khác.</span>
+                              <span className="text-[10px] font-bold text-emerald-600 max-w-[200px] truncate">{uploadedFileName}</span>
+                              <span className="text-[8px] text-slate-400">Trích xuất thành công! Click X để xóa.</span>
                             </div>
                           ) : (
                             <>
