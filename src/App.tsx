@@ -358,6 +358,191 @@ export default function App() {
     }
   };
 
+  const handleExportPdf = () => {
+    if (!initiative) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Vui lòng cho phép trình duyệt hiển thị pop-up để tải file PDF.");
+      return;
+    }
+
+    let sectionsHtml = '';
+    initiative.outline.forEach((section) => {
+      const isSub = section.vietnameseTitle.match(/^([0-9]+(\.[0-9]+)+)/) || /^[a-z]\)/i.test(section.vietnameseTitle.trim());
+      const headingTag = isSub ? 'h3' : 'h2';
+      
+      let cleanContent = section.content || '<i>(Chưa soạn thảo nội dung cho phần này)</i>';
+      cleanContent = cleanContent
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br/>')
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/\*(.*?)\*/g, '<i>$1</i>');
+
+      sectionsHtml += `
+        <div class="section-container">
+          <${headingTag} class="section-title">${section.vietnameseTitle}</${headingTag}>
+          <div class="section-content">
+            <p>${cleanContent}</p>
+          </div>
+        </div>
+      `;
+    });
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>${initiative.title}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
+            @page {
+              size: A4;
+              margin: 20mm;
+            }
+            body {
+              font-family: 'Times New Roman', Times, serif;
+              line-height: 1.6;
+              color: #111;
+              padding: 0;
+              margin: 0;
+              font-size: 14pt;
+            }
+            .cover-page {
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              height: 100vh;
+              text-align: center;
+              page-break-after: always;
+              border: 3px double #111;
+              padding: 40px;
+              box-sizing: border-box;
+              margin-bottom: 40px;
+            }
+            .school-header {
+              font-size: 15pt;
+              font-weight: bold;
+              text-transform: uppercase;
+              line-height: 1.4;
+            }
+            .title-box {
+              margin: auto 0;
+            }
+            .doc-title {
+              font-size: 20pt;
+              font-weight: bold;
+              text-transform: uppercase;
+              margin-bottom: 25px;
+              line-height: 1.3;
+            }
+            .doc-category {
+              font-size: 16pt;
+              font-weight: bold;
+              color: #333;
+              letter-spacing: 1px;
+            }
+            .meta-box {
+              text-align: left;
+              margin-left: 20%;
+              font-size: 14pt;
+              margin-bottom: 80px;
+              line-height: 1.8;
+            }
+            .meta-line {
+              margin-bottom: 8px;
+            }
+            .year-footer {
+              font-size: 14pt;
+              font-weight: bold;
+            }
+            .section-container {
+              page-break-inside: avoid;
+              margin-bottom: 30px;
+            }
+            h2.section-title {
+              font-size: 16pt;
+              font-weight: bold;
+              color: #000;
+              border-bottom: 1.5px solid #111;
+              padding-bottom: 6px;
+              margin-top: 40px;
+              text-transform: uppercase;
+            }
+            h3.section-title {
+              font-size: 14pt;
+              font-weight: bold;
+              color: #111;
+              margin-top: 25px;
+            }
+            .section-content {
+              margin-top: 15px;
+              text-align: justify;
+              text-indent: 1.27cm;
+            }
+            p {
+              margin-top: 0;
+              margin-bottom: 12px;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+              .cover-page {
+                height: 95vh;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <!-- Cover Page -->
+          <div class="cover-page">
+            <div class="school-header">
+              ${initiative.school}<br/>
+              ---***---
+            </div>
+            
+            <div class="title-box">
+              <div class="doc-title">${initiative.title}</div>
+              <div class="doc-category">
+                TÀI LIỆU: ${
+                  initiative.category === 'bien-phap' 
+                    ? 'BIỆN PHÁP SƯ PHẠM' 
+                    : initiative.category === 'ho-so' 
+                      ? 'HỒ SƠ GIÁO VIÊN CHỦ NHIỆM GIỎI' 
+                      : 'SÁNG KIẾN KINH NGHIỆM'
+                }
+              </div>
+            </div>
+
+            <div class="meta-box">
+              <div class="meta-line"><b>Tác giả:</b> ${initiative.author}</div>
+              <div class="meta-line"><b>Môn học:</b> ${initiative.subject}</div>
+              <div class="meta-line"><b>Khối lớp:</b> ${initiative.grade}</div>
+              <div class="meta-line"><b>Đơn vị công tác:</b> ${initiative.school}</div>
+            </div>
+
+            <div class="year-footer">
+              NĂM HỌC 2025 - 2026
+            </div>
+          </div>
+
+          <!-- Document Contents -->
+          ${sectionsHtml}
+
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
   const handleExportPptx = async () => {
     if (!initiative) return;
 
@@ -449,6 +634,7 @@ export default function App() {
               onTriggerEvaluation={handleTriggerEvaluation}
               onExportDocx={handleExportDocx}
               onExportPptx={handleExportPptx}
+              onExportPdf={handleExportPdf}
               onResetProject={handleResetProject}
               isEvaluating={isEvaluating}
               isGeneratingSlides={isGeneratingSlides}
