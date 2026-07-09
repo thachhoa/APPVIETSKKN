@@ -72,18 +72,27 @@ export default function App() {
     author: string;
     school: string;
     analyzedData: any;
+    uploadedSections?: { title: string; content: string }[];
   }) => {
-    // Build initial outline from analysis
-    const initialOutline: SectionOutline[] = data.analyzedData.standardOutlines.map((item: any) => ({
-      id: item.id,
-      title: item.title,
-      vietnameseTitle: item.vietnameseTitle,
-      description: item.description,
-      content: '',
-      status: 'pending' as const,
-      aiSuggestedMetrics: item.aiSuggestedMetrics || [],
-      aiSuggestedEvidences: item.aiSuggestedEvidences || []
-    }));
+    // Build initial outline from analysis và ghép nội dung gốc từ file Word
+    const initialOutline: SectionOutline[] = data.analyzedData.standardOutlines.map((item: any) => {
+      const matched = data.uploadedSections?.find(
+        s => s.title.toLowerCase().trim() === item.vietnameseTitle.toLowerCase().trim() ||
+             s.title.toLowerCase().trim() === item.title.toLowerCase().trim()
+      );
+      const content = matched ? matched.content : '';
+
+      return {
+        id: item.id,
+        title: item.title,
+        vietnameseTitle: item.vietnameseTitle,
+        description: item.description,
+        content: content,
+        status: content ? ('completed' as const) : ('idle' as const),
+        aiSuggestedMetrics: item.aiSuggestedMetrics || [],
+        aiSuggestedEvidences: item.aiSuggestedEvidences || []
+      };
+    });
 
     const newInitiative: Initiative = {
       id: 'skkn_' + Date.now(),
